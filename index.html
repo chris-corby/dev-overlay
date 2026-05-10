@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <title>dev-overlay Playground</title>
+    <meta
+      name="description"
+      content="Web components for checking grids, baselines and spacings in the browser."
+    />
+
+    <!-- CSS -->
+    <style>
+      /* Reset, see: github.com/elad2412/the-new-css-reset */
+      *:where(
+        :not(html, iframe, canvas, img, svg, video, audio):not(
+          svg *,
+          symbol *,
+          dev-grid,
+          dev-baseline,
+          dev-spacer
+        )
+      ) {
+        all: unset;
+        display: revert;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* Base */
+      :root {
+        --grid-columns: 4;
+
+        --margin: 1rem;
+        --max-width: 100rem;
+
+        --red: #a10b2b; /* carmine-red */
+        --red-light: hsl(from var(--red) h s 55%);
+        --yellow: #fff59e; /* pale-lemon-yellow */
+        --yellow-dark: hsl(from var(--yellow) h s 50%);
+
+        --gray: #b5d1cc; /* neutral-gray */
+        --gray-light: light-dark(
+          hsl(from var(--gray) h s 95%),
+          hsl(from var(--gray) h s 90%)
+        );
+
+        /* Take some saturation out of the darker grays to make them more neutral */
+        --gray-mid: hsl(from var(--gray) h calc(s - 15) 25%);
+        --gray-dark: hsl(from var(--gray) h calc(s - 15) 7.5%);
+        --gray-darker: hsl(from var(--gray) h calc(s - 15) 5%);
+
+        --white: light-dark(
+          hsl(from var(--gray) h s 97.5%),
+          hsl(from var(--gray) h s 92.5%)
+        );
+        --black: hsl(from var(--gray) h s 2.5%);
+
+        /* Elements */
+        --dev-grid-columns: var(--grid-columns);
+      }
+
+      @media (min-width: 1000px) {
+        :root {
+          --grid-columns: 12;
+        }
+      }
+
+      ::selection {
+        background-color: var(--red);
+        color: var(--yellow);
+        text-shadow: none;
+      }
+
+      html {
+        font-family: system-ui;
+        font-size: 16px;
+        line-height: 1.5;
+        letter-spacing: 0;
+
+        text-rendering: optimizeLegibility;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+
+        font-kerning: normal;
+        font-feature-settings: "kern", "liga", "clig", "calt";
+
+        -ms-text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+
+        color-scheme: light dark;
+        color: light-dark(var(--black), var(--gray-light));
+        background: light-dark(var(--white), var(--gray-dark));
+      }
+
+      html * {
+        text-box-trim: trim-both;
+      }
+
+      a,
+      button {
+        text-decoration-line: underline;
+        text-decoration-color: currentColor;
+        text-decoration-thickness: max(0.05em, 1px);
+        text-underline-offset: 0.15em;
+
+        cursor: pointer;
+      }
+
+      a {
+        color: light-dark(var(--red), var(--red-light));
+      }
+
+      p {
+        margin: unset;
+        margin-bottom: 1em;
+      }
+
+      i,
+      em {
+        font-style: italic;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-weight: 700;
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+
+        &:first-child {
+          margin-top: unset;
+        }
+      }
+
+      fieldset {
+        border: 1px solid light-dark(var(--gray), var(--gray-mid));
+        border-radius: 0.25rem;
+        padding: calc(var(--margin) * 1.4) var(--margin)
+          calc(var(--margin) * 1.25) var(--margin);
+      }
+
+      fieldset:not(:last-child) {
+        margin-bottom: 1rem;
+      }
+
+      legend {
+        margin-left: -0.5em;
+        padding: 0 0.5em;
+        font-weight: 500;
+        color: light-dark(var(--gray-darker), var(--gray-light));
+      }
+
+      dl {
+        display: flex;
+        flex-direction: column;
+        gap: 1.33em;
+      }
+
+      dl div {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.25em;
+      }
+
+      dt {
+        font-weight: 500;
+      }
+
+      dt::after {
+        content: " →" / "";
+      }
+
+      code,
+      pre,
+      kbd {
+        font-family: ui-monospace, monospace;
+      }
+
+      pre {
+        padding: 1em;
+        border: 1px solid light-dark(var(--white), var(--gray-mid));
+        border-radius: 0.25em;
+        background: light-dark(var(--gray-darker), var(--black));
+        color: var(--white);
+        font-size: 0.9rem;
+        white-space: pre;
+        overflow: auto;
+      }
+
+      kbd {
+        position: relative;
+        font-size: 0.9em;
+        padding: 0.125em 0.5em;
+        border: 1px solid light-dark(var(--gray-dark), var(--gray-mid));
+        border-bottom-width: 2px;
+        border-radius: 0.25em;
+        background-color: light-dark(var(--gray-light), var(--gray-dark));
+        margin: 0 0.25em;
+      }
+
+      kbd:hover {
+        top: 1px;
+        border-bottom-width: 1px;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.33em;
+      }
+
+      label:has(input[type="checkbox"]) {
+        flex-direction: row;
+        align-items: center;
+        cursor: pointer;
+        gap: 0.5em;
+      }
+
+      label > span {
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: light-dark(var(--gray-darker), var(--gray-light));
+      }
+
+      input,
+      select {
+        background-color: light-dark(var(--white), var(--gray-dark));
+        border: 1px solid var(--gray-mid);
+        border-radius: 0.25em;
+
+        width: 100%;
+        padding: 0.33em 0.5em;
+      }
+
+      input[type="checkbox"] {
+        width: 1lh;
+        height: 1lh;
+        flex-shrink: 0;
+        padding: 0;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+      }
+
+      input[type="checkbox"]:checked {
+        background: var(--gray-mid);
+      }
+
+      input[type="checkbox"]:checked::after {
+        content: "✓" / "";
+        font-weight: 700;
+        line-height: 1;
+        color: var(--white);
+      }
+
+      input[type="color"] {
+        appearance: none;
+        -webkit-appearance: none;
+
+        height: 2lh;
+        padding: 0;
+        border: none;
+
+        cursor: pointer;
+      }
+
+      input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      input[type="color"]::-webkit-color-swatch {
+        border: none;
+      }
+
+      input[type="color"]::-moz-color-swatch {
+        border: none;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        padding: 0;
+        border: none;
+        background: transparent;
+        appearance: none;
+        cursor: pointer;
+
+        margin-top: 1lh; /* central alignment with color */
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 1px;
+        background: currentColor;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+        background: currentColor;
+        margin-top: -0.5em; /* (thumb-height - track-height) / 2 */
+      }
+
+      input[type="range"]::-moz-range-track {
+        height: 1px;
+        background: currentColor;
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        border: none;
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* Header */
+      body > header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+
+        background: light-dark(var(--white), var(--gray-dark));
+        box-shadow: 0px 0px 0.5rem 0px
+          light-dark(
+            hsl(from var(--gray-darker) h s l / 0.125),
+            hsl(from var(--black) h s l / 0.875)
+          );
+      }
+
+      body > header div {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        row-gap: 1em; /* for when it wraps */
+        padding: var(--margin) var(--margin) var(--margin)
+          calc(var(--margin) * 2);
+
+        max-width: var(--max-width);
+        margin-inline: auto;
+      }
+
+      body > header h1 {
+        margin: unset;
+        font-size: 1rem;
+      }
+
+      body > header p {
+        margin: unset;
+        flex: 1;
+        min-width: min(100%, 20em);
+        color: light-dark(var(--gray-mid), var(--gray));
+      }
+
+      body > header a {
+        margin-left: auto;
+        padding-left: 2em; /* space to description */
+      }
+
+      /* Main */
+      main {
+        display: grid;
+        grid-template-columns: repeat(var(--grid-columns), 1fr);
+        gap: var(--margin);
+        align-items: start;
+        padding: var(--margin);
+
+        max-width: var(--max-width);
+        margin-inline: auto;
+      }
+
+      /* Sections */
+      section {
+        min-width: 0;
+        grid-column: 1 / -1;
+      }
+
+      @media (min-width: 1000px) {
+        section {
+          grid-column: span 1;
+        }
+      }
+
+      section > header {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+
+        padding: calc(var(--margin) - 0.25em) var(--margin);
+
+        border-radius: 0.25em 0.25em 0 0;
+        overflow: hidden;
+
+        background-color: light-dark(var(--yellow), var(--yellow-dark));
+        border: 1px solid light-dark(var(--yellow-dark), var(--yellow));
+        color: light-dark(var(--black), var(--gray-dark));
+      }
+
+      section > header h2 {
+        margin: unset;
+      }
+
+      @media (min-width: 640px) {
+        .Toggles {
+          grid-column: span 2;
+        }
+      }
+
+      @media (min-width: 1000px) {
+        .Toggles {
+          grid-column: span 3;
+        }
+      }
+
+      @media (min-width: 1000px) {
+        .Options {
+          grid-column: span 5;
+        }
+      }
+
+      @media (min-width: 640px) {
+        .Markup {
+          grid-column: span 3;
+        }
+      }
+
+      @media (min-width: 1000px) {
+        .Markup {
+          grid-column: span 4;
+        }
+      }
+
+      section > div {
+        background-color: light-dark(var(--gray-light), var(--gray-darker));
+        border: 1px solid light-dark(var(--gray), var(--gray-mid));
+        border-top: none;
+        padding: var(--margin);
+        border-radius: 0 0 0.25em 0.25em;
+        overflow: hidden;
+      }
+
+      .Row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: calc(var(--margin) * 1.33);
+      }
+
+      .Row--triple {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .Row + .Row {
+        margin-top: var(--margin);
+      }
+
+      .Hint {
+        margin: unset;
+
+        grid-column: 1 / -1;
+        margin-top: calc(var(--margin) * -0.66);
+
+        font-size: 0.9rem;
+        color: light-dark(var(--gray-mid), var(--gray));
+      }
+
+      footer {
+        display: grid;
+        grid-template-columns: repeat(var(--grid-columns), 1fr);
+        gap: var(--margin);
+
+        max-width: var(--max-width);
+        margin-inline: auto;
+
+        font-size: 0.9rem;
+        text-align: right;
+
+        padding: var(--margin);
+      }
+
+      footer p {
+        margin: unset;
+
+        grid-column: span 2 / -1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>dev-overlay</h1>
+        <p>
+          <span aria-hidden="true">,&puncsp;</span>web components for checking
+          visual layout
+        </p>
+        <a href="https://github.com/chris-corby/dev-overlay">View on GitHub</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- Toggles -->
+      <section class="Toggles">
+        <header>
+          <h2>1 – Toggle the Elements</h2>
+        </header>
+        <div>
+          <dl>
+            <div>
+              <dt>Grid</dt>
+              <dd>
+                <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd data-key="grid">G</kbd>
+              </dd>
+            </div>
+            <div>
+              <dt>Baseline</dt>
+              <dd>
+                <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd data-key="baseline"
+                  >B</kbd
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>Spacer</dt>
+              <dd>
+                <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd data-key="spacer">S</kbd>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- Options -->
+      <section class="Options">
+        <header>
+          <h2>2 – Customize</h2>
+          <button type="button" data-reset>Reset &#8634;</button>
+        </header>
+        <div>
+          <form>
+            <!-- Triggers -->
+            <fieldset>
+              <legend>Trigger Keys</legend>
+              <div class="Row Row--triple">
+                <label>
+                  <span>Grid</span>
+                  <input
+                    type="text"
+                    maxlength="1"
+                    data-target="grid-trigger"
+                    placeholder="G"
+                  />
+                </label>
+                <label>
+                  <span>Baseline</span>
+                  <input
+                    type="text"
+                    maxlength="1"
+                    data-target="baseline-trigger"
+                    placeholder="B"
+                  />
+                </label>
+                <label>
+                  <span>Spacer</span>
+                  <input
+                    type="text"
+                    maxlength="1"
+                    data-target="spacer-trigger"
+                    placeholder="S"
+                  />
+                </label>
+              </div>
+            </fieldset>
+
+            <!-- Starting State -->
+            <fieldset>
+              <legend>Active State on Load</legend>
+              <div class="Row Row--triple">
+                <label>
+                  <input type="checkbox" data-target="grid-active" />
+                  <span>Grid</span>
+                </label>
+                <label>
+                  <input type="checkbox" data-target="baseline-active" />
+                  <span>Baseline</span>
+                </label>
+                <label>
+                  <input type="checkbox" data-target="spacer-active" />
+                  <span>Spacer</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <!-- Grid Settings -->
+            <fieldset>
+              <legend>Grid Settings</legend>
+              <div class="Row">
+                <label>
+                  <span>Column Count</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    data-target="grid-columns"
+                    placeholder="12"
+                  />
+                </label>
+                <label>
+                  <span>Gap</span>
+                  <input
+                    type="text"
+                    data-target="grid-gap"
+                    placeholder="1rem"
+                  />
+                </label>
+                <label>
+                  <span>Outer Margin</span>
+                  <input
+                    type="text"
+                    data-target="grid-margin"
+                    placeholder="1rem"
+                  />
+                </label>
+                <label>
+                  <span>Max Width</span>
+                  <input
+                    type="text"
+                    data-target="grid-max-width"
+                    placeholder="100rem"
+                  />
+                </label>
+                <label>
+                  <span>Blend Mode</span>
+                  <input
+                    type="text"
+                    list="blend-modes"
+                    value="hard-light"
+                    data-target="grid-blend-mode"
+                  />
+                  <datalist id="blend-modes">
+                    <option value="hard-light"></option>
+                    <option value="soft-light"></option>
+                    <option value="darken"></option>
+                    <option value="lighten"></option>
+                    <option value="difference"></option>
+                    <option value="luminosity"></option>
+                  </datalist>
+                </label>
+                <label>
+                  <span>Z-Index</span>
+                  <input
+                    type="number"
+                    step="1"
+                    data-target="grid-z-index"
+                    placeholder="10000"
+                  />
+                </label>
+              </div>
+              <div class="Row">
+                <label>
+                  <span>Color</span>
+                  <input
+                    type="color"
+                    value="#0000ff"
+                    data-target="grid-color"
+                    aria-describedby="grid-color-help"
+                  />
+                </label>
+                <label>
+                  <span>Alpha</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="0.25"
+                    data-target="grid-alpha"
+                    aria-describedby="grid-color-help"
+                  />
+                </label>
+                <p class="Hint" id="grid-color-help">
+                  Hex is used in this demo but any color format is accepted.
+                </p>
+              </div>
+            </fieldset>
+
+            <!-- Baseline Settings -->
+            <fieldset>
+              <legend>Baseline Settings</legend>
+              <div class="Row">
+                <label>
+                  <span>Spacing</span>
+                  <input
+                    type="text"
+                    data-target="baseline-spacing"
+                    placeholder="1rem"
+                  />
+                </label>
+                <label>
+                  <span>Z-Index</span>
+                  <input
+                    type="number"
+                    step="1"
+                    data-target="baseline-z-index"
+                    placeholder="10001"
+                  />
+                </label>
+              </div>
+              <div class="Row">
+                <label>
+                  <span>Color</span>
+                  <input
+                    type="color"
+                    value="#ff0000"
+                    data-target="baseline-color"
+                    aria-describedby="baseline-color-help"
+                  />
+                </label>
+                <label>
+                  <span>Alpha</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="0.25"
+                    data-target="baseline-alpha"
+                    aria-describedby="baseline-color-help"
+                  />
+                </label>
+                <p class="Hint" id="baseline-color-help">
+                  Hex is used in this demo but any color format is accepted.
+                </p>
+              </div>
+            </fieldset>
+
+            <!-- Spacer Settings -->
+            <fieldset>
+              <legend>Spacer Settings</legend>
+              <div class="Row">
+                <label>
+                  <span>Starting Width</span>
+                  <input
+                    type="text"
+                    data-target="spacer-width"
+                    placeholder="2rem"
+                  />
+                </label>
+                <label>
+                  <span>Starting Height</span>
+                  <input
+                    type="text"
+                    data-target="spacer-height"
+                    placeholder="2rem"
+                  />
+                </label>
+                <label>
+                  <span>Z-Index</span>
+                  <input
+                    type="number"
+                    step="1"
+                    data-target="spacer-z-index"
+                    placeholder="10002"
+                  />
+                </label>
+                <label>
+                  <span>Label Font Size</span>
+                  <input
+                    type="text"
+                    data-target="spacer-font-size"
+                    placeholder="10px"
+                  />
+                </label>
+              </div>
+              <div class="Row">
+                <label>
+                  <span>Color</span>
+                  <input
+                    type="color"
+                    value="#ff0000"
+                    data-target="spacer-color"
+                    aria-describedby="spacer-color-help"
+                  />
+                </label>
+                <label>
+                  <span>Alpha</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="0.5"
+                    data-target="spacer-alpha"
+                    aria-describedby="spacer-color-help"
+                  />
+                </label>
+                <p class="Hint" id="spacer-color-help">
+                  Hex is used in this demo but any color format is accepted.
+                </p>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+      </section>
+
+      <!-- Markup -->
+      <section class="Markup">
+        <header>
+          <h2>3 – Copy the Code</h2>
+        </header>
+        <div>
+          <p>
+            For full install instructions and options, see
+            <a href="https://github.com/chris-corby/dev-overlay"
+              >the&nbsp;readme</a
+            >.
+          </p>
+
+          <h3>a) Elements + CSS</h3>
+          <pre><code data-markup-css></code></pre>
+
+          <h3>b) Elements Only</h3>
+          <pre><code data-markup-html></code></pre>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        <i>dev-overlay</i> is a project by
+        <a href="https://chris-corby.com">Chris&nbsp;Corby</a>, a developer
+        based in Brighton,&nbsp;UK&nbsp;⛱️
+      </p>
+    </footer>
+
+    <!-- Live Elements -->
+    <dev-grid></dev-grid>
+    <dev-baseline></dev-baseline>
+    <dev-spacer></dev-spacer>
+
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@chris-corby/dev-overlay/dist/auto.js"></script>
+    <script>
+      const grid = document.querySelector("dev-grid");
+      const baseline = document.querySelector("dev-baseline");
+      const spacer = document.querySelector("dev-spacer");
+      const keys = Array.from(document.querySelectorAll(`[data-key]`));
+
+      const form = document.querySelector(`form`);
+      const resetButton = document.querySelector(`[data-reset]`);
+      const htmlMarkup = document.querySelector(`[data-markup-html]`);
+      const cssMarkup = document.querySelector(`[data-markup-css]`);
+
+      //  The default settings
+      const defaults = {
+        grid: {
+          active: false,
+          trigger: "g",
+          columns: "12",
+          gap: "1rem",
+          margin: "1rem",
+          "max-width": "100rem",
+          color: "#0000ff",
+          alpha: 0.25,
+          "blend-mode": "hard-light",
+          "z-index": "10000",
+        },
+        baseline: {
+          active: false,
+          trigger: "b",
+          spacing: "1rem",
+          color: "#ff0000",
+          alpha: 0.25,
+          "z-index": "10001",
+        },
+        spacer: {
+          active: false,
+          trigger: "s",
+          width: "2rem",
+          height: "2rem",
+          "font-size": "10px",
+          color: "#ff0000",
+          alpha: 0.5,
+          "z-index": "10002",
+        },
+      };
+      let state;
+
+      function init() {
+        resetStateToDefaults();
+        addListeners();
+        render();
+      }
+
+      function resetStateToDefaults() {
+        state = structuredClone(defaults);
+      }
+
+      function addListeners() {
+        form.addEventListener("input", handleInput);
+        resetButton.addEventListener("click", handleReset);
+      }
+
+      function handleInput(event) {
+        const input = event.target;
+        const [target, ...rest] = input.dataset.target.split("-"); // 'grid', ['max', 'width']
+        const key = rest.join("-"); // 'max-width'
+
+        //  Update the state
+        state[target][key] =
+          input.type === "checkbox" ? input.checked : input.value;
+
+        //  Re-render
+        render();
+      }
+
+      //  Convert a 0–1 alpha value to a two-digit hex pair
+      function alphaToHex(alpha) {
+        return Math.round(parseFloat(alpha) * 255)
+          .toString(16)
+          .padStart(2, "0");
+      }
+
+      //  Combine the color hex with its corresponding alpha into an 8-digit hex.
+      function getColorValue(element) {
+        const color = state[element].color;
+        const alpha = state[element].alpha;
+        const defaultColor = defaults[element].color;
+        const defaultAlpha = defaults[element].alpha;
+
+        if (color === defaultColor && alpha === defaultAlpha) return "";
+        return `${color}${alphaToHex(alpha)}`;
+      }
+
+      //  Only return a value if it diverges from the default
+      function getCustomPropValueForRoot(element, key) {
+        const currentValue = state[element][key];
+        const defaultValue = defaults[element][key];
+
+        if (currentValue === defaultValue) return "";
+        return currentValue;
+      }
+
+      function syncCustomProps() {
+        // Copy state to CSS custom props
+        const root = document.documentElement.style;
+
+        for (const element of Object.keys(state)) {
+          for (const key of Object.keys(state[element])) {
+            //  CSS doesn’t handle some keys
+            if (["active", "trigger", "alpha"].includes(key)) continue;
+
+            const propertyName = `--dev-${element}-${key}`;
+            const value =
+              key === "color"
+                ? getColorValue(element)
+                : getCustomPropValueForRoot(element, key);
+
+            root.setProperty(propertyName, value);
+          }
+        }
+      }
+
+      //  Sync choice attributes to the preview grid
+      function syncAttributes(key, element) {
+        const attributes = ["trigger"];
+
+        attributes.forEach((attr) => {
+          const value = getCustomPropValueForRoot(key, attr);
+
+          if (value) {
+            element.setAttribute(attr, value);
+          } else {
+            element.removeAttribute(attr);
+          }
+        });
+      }
+
+      function syncCSSMarkup() {
+        //  HTML lines — only attributes that CSS can’t carry
+        const htmlLines = [];
+        for (const element of Object.keys(state)) {
+          let text = `<dev-${element}`;
+
+          for (const key of ["active", "trigger"]) {
+            const value = getCustomPropValueForRoot(element, key);
+            if (!value) continue;
+
+            if (value === true) {
+              text += ` ${key}`;
+            } else {
+              text += ` ${key}="${value}"`;
+            }
+          }
+
+          text += `></dev-${element}>`;
+          htmlLines.push(text);
+        }
+
+        //  CSS lines
+        const cssLines = [];
+        for (const element of Object.keys(state)) {
+          for (const key of Object.keys(state[element])) {
+            //  CSS doesn't handle some keys
+            if (["active", "trigger", "alpha"].includes(key)) continue;
+
+            const propertyName = `--dev-${element}-${key}`;
+            const value =
+              key === "color"
+                ? getColorValue(element)
+                : getCustomPropValueForRoot(element, key);
+            if (!value) continue;
+
+            cssLines.push(`  ${propertyName}: ${value};`);
+          }
+        }
+
+        //  Combine
+        const rootBlock = cssLines.length
+          ? `:root {\n${cssLines.join("\n")}\n}`
+          : `:root {\n  /* no overrides */\n}`;
+        cssMarkup.textContent = `${htmlLines.join("\n")}\n\n${rootBlock}`;
+      }
+
+      function syncHTMLMarkup() {
+        const lines = [];
+
+        for (const element of Object.keys(state)) {
+          let text = `<dev-${element}`;
+
+          for (const key of Object.keys(state[element])) {
+            if (key === "alpha") continue;
+
+            const value =
+              key === "color"
+                ? getColorValue(element)
+                : getCustomPropValueForRoot(element, key);
+            if (!value) continue;
+
+            if (value === true) {
+              text += ` ${key}`;
+            } else {
+              text += ` ${key}="${value}"`;
+            }
+          }
+
+          text += `></dev-${element}>`;
+
+          lines.push(text);
+        }
+
+        htmlMarkup.textContent = lines.join("\n");
+      }
+
+      function syncKeys() {
+        keys.forEach((key) => {
+          const element = key.getAttribute("data-key");
+          const trigger = state[element].trigger || defaults[element].trigger;
+
+          key.textContent = trigger.toUpperCase();
+        });
+      }
+
+      function render() {
+        syncCustomProps();
+        syncAttributes("grid", grid);
+        syncAttributes("baseline", baseline);
+        syncAttributes("spacer", spacer);
+        syncCSSMarkup();
+        syncHTMLMarkup();
+        syncKeys();
+      }
+
+      function handleReset(event) {
+        event.preventDefault();
+
+        //  Reset the form
+        form.reset();
+
+        //  Reset the state
+        resetStateToDefaults();
+
+        //  Re-render
+        render();
+      }
+
+      //  Run
+      init();
+    </script>
+  </body>
+</html>

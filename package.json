@@ -1,0 +1,55 @@
+{
+  "name": "@chris-corby/dev-overlay",
+  "version": "0.1.0",
+  "description": "Web components for checking visual layout",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./auto": {
+      "import": "./dist/auto.js",
+      "types": "./dist/auto.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./dist/auto.js"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --minify --sourcemap && esbuild src/auto.ts --bundle --format=esm --outfile=dist/auto.js --minify --sourcemap",
+    "dev": "esbuild src/index.ts src/auto.ts --bundle --format=esm --outdir=dist --outbase=src --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "author": "Chris Corby",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chris-corby/dev-overlay.git"
+  },
+  "bugs": "https://github.com/chris-corby/dev-overlay/issues",
+  "homepage": "https://chris-corby.github.io/dev-overlay/",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "dev-tools",
+    "grid-overlay",
+    "spacer",
+    "web-components",
+    "shadow-dom",
+    "measurement"
+  ]
+}
