@@ -1,6 +1,6 @@
 {
   "name": "@chris-corby/dev-overlay",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Web components for checking visual layout",
   "type": "module",
   "types": "dist/index.d.ts",
