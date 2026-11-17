@@ -202,7 +202,8 @@ export class DevSpacer extends DevBase {
 
   #observeResize() {
     this.#resizeObserver = new ResizeObserver(() => {
-      if (!this.active) return;
+      //  Skip while hidden (inactive, or inside a closed dialog)
+      if (!this.checkVisibility()) return;
 
       this.size = { width: this.offsetWidth, height: this.offsetHeight };
       this.position = { x: this.offsetLeft, y: this.offsetTop };
@@ -282,7 +283,9 @@ export class DevSpacer extends DevBase {
 
     //  Esc to reset
     if (event.key === "Escape") {
-      event.preventDefault();
+      //  Except inside modals – allow them to close
+      if (this.ownerDocument.querySelector("dialog:modal")) return;
+
       this.#reset();
       return;
     }

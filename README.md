@@ -36,7 +36,10 @@ import "@chris-corby/dev-overlay/auto";
 ##### b) In HTML
 
 ```html
-<script type="module" src="[PATH]/node_modules/@chris-corby/dev-overlay/dist/auto.js"></script>
+<script
+  type="module"
+  src="[PATH]/node_modules/@chris-corby/dev-overlay/dist/auto.js"
+></script>
 <!-- Direct src would be: "[PATH]/dist/auto.js" -->
 ```
 
@@ -88,6 +91,27 @@ The following grid element would be visible on load and triggered with `Ctrl + S
 ```
 
 The `trigger` value is case-insensitive so `trigger="w"` and `trigger="W"` are equivalent.
+
+### Modal dialogs
+
+Modal dialogs sit above everything else on the page, so they’ll cover the overlays. To use an overlay inside a modal, add a copy of it to the dialog:
+
+```html
+<dialog>
+  <!-- … -->
+  <dev-grid></dev-grid>
+  <dev-spacer></dev-spacer>
+</dialog>
+```
+
+Shortcuts toggle every copy at once, and copies in closed dialogs stay hidden. CSS custom properties on `:root` are shared by every copy; attributes need repeating.
+
+A few things to note:
+
+- Each spacer keeps its own position and size.
+- Dialogs added after the page loads start with their copies hidden.
+- In dialogs with `transform`, `filter`, `contain` or `container-type`, copies are positioned relative to the dialog rather than the viewport.
+- While a modal is open, `Escape` closes it rather than resetting the spacer. Double-click still resets it.
 
 ## Customization
 
